@@ -1,0 +1,40 @@
+name: Commit Portal
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: "Message for the commit"
+        required: true
+
+jobs:
+  commit:
+    environment: development
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Delete portal folder
+        run: rm portal -Recurse -Force -ErrorAction Ignore
+
+      - uses: microsoft/powerplatform-actions/download-paportal@fe82057248cb30e566f88e9d9c5d2802dd3ca3b3
+        with:
+          environment-url: ${{ secrets.URL }}
+          app-id: ${{ secrets.APPLICATION_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          download-path: portal
+          website-id: f46b70cc-580b-4f1a-87c3-41deb48eb90d
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Commit
+        run: |
+          git add portal/*
+          git commit -m $env:COMMIT_MESSAGE --author "${{ github.actor }}"
+          git push
+        env:
+          COMMIT_MESSAGE: ${{ github.event.inputs.commit_message }}
